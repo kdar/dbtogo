@@ -14,6 +14,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"text/template"
@@ -132,7 +133,7 @@ func render(writer io.Writer, md *Metadata, file string) error {
 		},
 	}
 
-	tplName := file
+	tplName := filepath.Base(file)
 	tpl := template.New("output").Funcs(funcMap)
 
 	var t *template.Template
