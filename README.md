@@ -13,6 +13,8 @@ Right now only supports mysql and sqlite3. Haven't gotten around to implementing
 
 I don't like using ORMs that do too much magic for me. This allows me to generate structs for my massive databases and use database/sql or some other light wrapper ([sqlx](https://github.com/jmoiron/sqlx)).
 
+I use this for our production backend. Pull requests are welcome.
+
 ### Usage
 
 `dbtogo --help` will tell you what you want to know.
@@ -94,12 +96,26 @@ tolower           | "Awesome" -> "awesome"
 join              | strings.Join            
 captialize        | "hello" -> "Hello"  
 noundercore       | "im_cool" -> "imcool"
+underscore        | "BigBen" -> "big_ben"
 camelize          | "dino_party" -> "DinoParty"
 camelizedownfirst | same as camelcase but with first letter downcased
 pluralize         | returns the plural form of a singular word
 singularize       | returns the singular form of a plural word
 tableize          | "SuperPerson" -> "super_people"
 typeify           | "something_like_this" -> "SomethingLikeThis"
+
+Modify inflection functions
+
+function          | description             
+:-----------------|:--------------------------------------------------------
+addacronym        | [AddAcronym](http://godoc.org/bitbucket.org/pkg/inflect#Ruleset.AddAcronym)
+addhuman          | [AddHuman](http://godoc.org/bitbucket.org/pkg/inflect#Ruleset.AddHuman)
+addirregular      | [AddIrregular](http://godoc.org/bitbucket.org/pkg/inflect#Ruleset.AddIrregular)
+addplural         | [AddPlural](http://godoc.org/bitbucket.org/pkg/inflect#Ruleset.AddPlural)
+addpluralexact    | [AddPluralExact](http://godoc.org/bitbucket.org/pkg/inflect#Ruleset.AddPluralExact)
+addsingular       | [AddSingular](http://godoc.org/bitbucket.org/pkg/inflect#Ruleset.AddSingular)
+addsingularexact  | [AddSingularExact](http://godoc.org/bitbucket.org/pkg/inflect#Ruleset.AddSingularExact)
+adduncountable    | [AddUncountable](http://godoc.org/bitbucket.org/pkg/inflect#Ruleset.AddUncountable)
 
 Math functions
 
@@ -112,6 +128,12 @@ Field functions (these functions operate on dbtogo.Field)
 
 function          | description             
 :-----------------|:--------------------------------------------------------
-typenull          | converts to sql.Null* when appropriate.
-                  | makes it a pointer otherwise
+typenull          | converts to sql.Null* when appropriate. makes it a pointer otherwise
 typepointer       | converts to a pointer unless it is a slice type
+
+### Inflection modification
+
+Sometimes, the inflection library doesn't do what you want. For me, I ran into problems with words like "Address" and "Diagnosis" and turning them singular. It would return "Addres" and "Diagnosi" respectively. To fix this, put the following in your template before you do any inflection calls:
+
+    {{ addsingular "sis" "sis" }}
+    {{ addsingular "ess" "ess" }}

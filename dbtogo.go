@@ -82,70 +82,73 @@ func format(w io.Writer, tabWidth int, code []byte) error {
 	return nil
 }
 
-func main() {
-	cli.AppHelpTemplate = `NAME:
-   {{.Name}} - {{.Usage}}
+func render(writer io.Writer, md *Metadata, file string) error {
+	funcMap := template.FuncMap{
+		"tolower":           strings.ToLower,
+		"join":              strings.Join,
+		"capitalize":        capitalize,
+		"nounderscore":      nounderscore,
+		"underscore":        inflect.Underscore,
+		"camelize":          inflect.Camelize,
+		"camelizedownfirst": inflect.CamelizeDownFirst,
+		"pluralize":         inflect.Pluralize,
+		"singularize":       inflect.Singularize,
+		"tableize":          inflect.Tableize,
+		"typeify":           inflect.Typeify,
 
-USAGE:
-   {{.Name}} [global options] command [command options] [arguments...]
+		"addacronym":     func(a string) string { inflect.AddAcronym(a); return "" },
+		"addhuman":       func(a, b string) string { inflect.AddHuman(a, b); return "" },
+		"addirregular":   func(a, b string) string { inflect.AddIrregular(a, b); return "" },
+		"addplural":      func(a, b string) string { inflect.AddPlural(a, b); return "" },
+		"addsingular":    func(a, b string) string { inflect.AddSingular(a, b); return "" },
+		"adduncountable": func(a string) string { inflect.AddUncountable(a); return "" },
 
-COMMANDS:
-   {{range .Commands}}{{.Name}}{{with .ShortName}}, {{.}}{{end}}{{ "\t" }}{{.Usage}}
-   {{end}}
-GLOBAL OPTIONS:
-   {{range .Flags}}{{.}}
-   {{end}}
-DATABASES:
-   mysql          http://github.com/go-sql-driver/mysql
-   postgresql     http://github.com/bmizerany/pq
-   sqlite3        http://github.com/mattn/go-sqlite3
-`
-	cli.CommandHelpTemplate = `NAME:
-   {{.Name}} - {{.Usage}}
-
-USAGE:
-   dbtogo {{.Name}} [command options] [DSN]
-
-   If you want to omit the DSN on the command line, 
-     put your DSN in the DBTOGO_DSN environment variable.
-
-OPTIONS:
-   {{range .Flags}}{{.}}
-   {{end}}
-EXAMPLE:
-   dbtogo {{.Name}} {{if eq .Name "mysql"}}mysqluser:pass@tcp(host:port)/db{{end}}{{if eq .Name "postgresql"}}user=pqgotest dbname=pqgotest sslmode=verify-full{{end}}{{if eq .Name "sqlite3"}}./foo.db{{end}}
-`
-
-	app := cli.NewApp()
-	app.Name = "dbtogo"
-	app.Usage = "turns database tables into go code"
-	app.Version = "1.0.0"
-	app.Flags = []cli.Flag{
-		cli.StringFlag{"tpl", "", "template to use in rendering code"},
-		cli.BoolFlag{"nofmt", "don't use go fmt to format code"},
-		cli.IntFlag{"tabwidth", 4, "tab width for go fmt output"},
-		cli.StringFlag{"o", "-", "where to output code. defaults to stdout"},
-	}
-	// app.Action = func(c *cli.Context) {
-	// 	println("Hello friend!")
-	// }
-
-	app.Commands = []cli.Command{
-		{
-			Name:        "mysql",
-			Usage:       "connects to a mysql database",
-			Description: "",
-			Action:      cliAction("mysql"),
+		"add": func(x, y int) int {
+			return x + y
 		},
-		{
-			Name:        "sqlite3",
-			Usage:       "connects to a sqlite3 database",
-			Description: "",
-			Action:      cliAction("sqlite3"),
+		"sub": func(x, y int) int {
+			return x - y
+		},
+
+		"typenull": func(f Field) string {
+			t := f.Type.String()
+			if !strings.HasPrefix(t, "[]") {
+				switch t {
+				case "bool", "float64", "int64", "string":
+					t = "sql.Null" + capitalize(t)
+				default:
+					t = "*" + t
+				}
+			}
+
+			return t
+		},
+		"typepointer": func(f Field) string {
+			t := f.Type.String()
+			if !strings.HasPrefix(t, "[]") {
+				t = "*" + t
+			}
+			return t
 		},
 	}
 
-	app.Run(os.Args)
+	tplName := file
+	tpl := template.New("output").Funcs(funcMap)
+
+	var t *template.Template
+	var err error
+	if file == "" {
+		tplName = "output"
+		t, err = tpl.Parse(default_template)
+	} else {
+		t, err = tpl.ParseFiles(file)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return t.ExecuteTemplate(writer, tplName, md)
 }
 
 func cliAction(cmd string) func(c *cli.Context) {
@@ -219,61 +222,68 @@ func cliAction(cmd string) func(c *cli.Context) {
 	}
 }
 
-func render(writer io.Writer, md *Metadata, file string) error {
-	funcMap := template.FuncMap{
-		"tolower":           strings.ToLower,
-		"join":              strings.Join,
-		"capitalize":        capitalize,
-		"nounderscore":      nounderscore,
-		"camelize":          inflect.Camelize,
-		"camelizedownfirst": inflect.CamelizeDownFirst,
-		"pluralize":         inflect.Pluralize,
-		"singularize":       inflect.Singularize,
-		"tableize":          inflect.Tableize,
-		"typeify":           inflect.Typeify,
-		"add": func(x, y int) int {
-			return x + y
-		},
-		"sub": func(x, y int) int {
-			return x - y
-		},
-		"typenull": func(f Field) string {
-			t := f.Type.String()
-			if !strings.HasPrefix(t, "[]") {
-				switch t {
-				case "bool", "float64", "int64", "string":
-					t = "sql.Null" + capitalize(t)
-				default:
-					t = "*" + t
-				}
-			}
+func main() {
+	cli.AppHelpTemplate = `NAME:
+   {{.Name}} - {{.Usage}}
 
-			return t
+USAGE:
+   {{.Name}} [global options] command [command options] [arguments...]
+
+COMMANDS:
+   {{range .Commands}}{{.Name}}{{with .ShortName}}, {{.}}{{end}}{{ "\t" }}{{.Usage}}
+   {{end}}
+GLOBAL OPTIONS:
+   {{range .Flags}}{{.}}
+   {{end}}
+DATABASES:
+   mysql          http://github.com/go-sql-driver/mysql
+   postgresql     http://github.com/bmizerany/pq
+   sqlite3        http://github.com/mattn/go-sqlite3
+`
+	cli.CommandHelpTemplate = `NAME:
+   {{.Name}} - {{.Usage}}
+
+USAGE:
+   dbtogo {{.Name}} [command options] [DSN]
+
+   If you want to omit the DSN on the command line, 
+     put your DSN in the DBTOGO_DSN environment variable.
+
+OPTIONS:
+   {{range .Flags}}{{.}}
+   {{end}}
+EXAMPLE:
+   dbtogo {{.Name}} {{if eq .Name "mysql"}}mysqluser:pass@tcp(host:port)/db{{end}}{{if eq .Name "postgresql"}}user=pqgotest dbname=pqgotest sslmode=verify-full{{end}}{{if eq .Name "sqlite3"}}./foo.db{{end}}
+`
+
+	app := cli.NewApp()
+	app.Name = "dbtogo"
+	app.Usage = "turns database tables into go code"
+	app.Version = "1.0.0"
+	app.Flags = []cli.Flag{
+		cli.StringFlag{"tpl", "", "template to use in rendering code"},
+		cli.BoolFlag{"nofmt", "don't use go fmt to format code"},
+		cli.IntFlag{"tabwidth", 4, "tab width for go fmt output"},
+		cli.StringFlag{"o", "-", "where to output code. defaults to stdout"},
+	}
+	// app.Action = func(c *cli.Context) {
+	// 	println("Hello friend!")
+	// }
+
+	app.Commands = []cli.Command{
+		{
+			Name:        "mysql",
+			Usage:       "connects to a mysql database",
+			Description: "",
+			Action:      cliAction("mysql"),
 		},
-		"typepointer": func(f Field) string {
-			t := f.Type.String()
-			if !strings.HasPrefix(t, "[]") {
-				t = "*" + t
-			}
-			return t
+		{
+			Name:        "sqlite3",
+			Usage:       "connects to a sqlite3 database",
+			Description: "",
+			Action:      cliAction("sqlite3"),
 		},
 	}
 
-	tplName := file
-	tpl := template.New("output").Funcs(funcMap)
-
-	var t *template.Template
-	var err error
-	if file == "" {
-		tplName = "output"
-		t, err = tpl.Parse(default_template)
-	} else {
-		t, err = tpl.ParseFiles(file)
-	}
-
-	if err != nil {
-		return err
-	}
-
-	return t.ExecuteTemplate(writer, tplName, md)
+	app.Run(os.Args)
 }
