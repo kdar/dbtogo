@@ -12,6 +12,24 @@ var (
 	timeType = reflect.TypeOf(time.Now())
 )
 
+type Field struct {
+	Name string
+	Type reflect.Type
+}
+
+type Table struct {
+	Name   string
+	Fields []Field
+}
+
+type Metadata struct {
+	Args []string
+	// Args without connect string
+	SafeArgs []string
+	Package  string
+	Tables   []Table
+}
+
 // parses the mysql type string and returns
 // the basic type and its sign (if any)
 func parseMysqlType(s string) (typ string, sign string) {
@@ -28,28 +46,29 @@ func parseMysqlType(s string) (typ string, sign string) {
 
 // connect to mysql and return all
 // of the tables and their fields
-func mysql(md *Metadata, db *sql.DB) error {
+func mysql(db *sql.DB) (*Metadata, error) {
 	rows, err := db.Query("show tables")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	var tables []string
-	var table string
+	md := &Metadata{}
+
+	var tableNames []string
+	var tableName string
 	for rows.Next() {
-		rows.Scan(&table)
-		tables = append(tables, table)
+		rows.Scan(&tableName)
+		tableNames = append(tableNames, tableName)
 	}
 
-	for _, table := range tables {
-		rows, err := db.Query(fmt.Sprintf("show columns from %s", table))
+	for _, tableName := range tableNames {
+		rows, err := db.Query(fmt.Sprintf("show columns from %s", tableName))
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		strct := Struct{
-			Name:      table,
-			CleanName: formatStructName(table),
+		table := Table{
+			Name: tableName,
 		}
 		var field, mtyp, null string
 		for rows.Next() {
@@ -72,24 +91,23 @@ func mysql(md *Metadata, db *sql.DB) error {
 				vtype = reflect.TypeOf([]byte{})
 			}
 
-			strct.Fields = append(strct.Fields, Field{
-				Name:      field,
-				CleanName: formatFieldName(field),
-				Type:      vtype,
+			table.Fields = append(table.Fields, Field{
+				Name: field,
+				Type: vtype,
 			})
 		}
 
-		md.Structs = append(md.Structs, strct)
+		md.Tables = append(md.Tables, table)
 	}
 
-	return nil
+	return md, nil
 }
 
 // connect to postgresql and return all
 // of the tables and their fields
-func postgresql(md *Metadata, db *sql.DB) error {
+func postgresql(db *sql.DB) (*Metadata, error) {
 	//"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = ?"
-	return nil
+	return nil, nil
 }
 
 // parses the sqlite3 type string and returns
@@ -105,28 +123,29 @@ func parseSqlite3Type(s string) (typ string, sign string) {
 	return
 }
 
-func sqlite3(md *Metadata, db *sql.DB) error {
+func sqlite3(db *sql.DB) (*Metadata, error) {
 	rows, err := db.Query("SELECT tbl_name FROM sqlite_master WHERE type = ?", "table")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	var tables []string
-	var table string
+	md := &Metadata{}
+
+	var tableNames []string
+	var tableName string
 	for rows.Next() {
-		rows.Scan(&table)
-		tables = append(tables, table)
+		rows.Scan(&tableName)
+		tableNames = append(tableNames, tableName)
 	}
 
-	for _, table := range tables {
-		rows, err := db.Query(fmt.Sprintf("PRAGMA TABLE_INFO('%s')", table))
+	for _, tableName := range tableNames {
+		rows, err := db.Query(fmt.Sprintf("PRAGMA TABLE_INFO('%s')", tableName))
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		strct := Struct{
-			Name:      table,
-			CleanName: formatStructName(table),
+		table := Table{
+			Name: tableName,
 		}
 		var field, styp, null string
 		for rows.Next() {
@@ -151,15 +170,14 @@ func sqlite3(md *Metadata, db *sql.DB) error {
 				vtype = timeType
 			}
 
-			strct.Fields = append(strct.Fields, Field{
-				Name:      field,
-				CleanName: formatFieldName(field),
-				Type:      vtype,
+			table.Fields = append(table.Fields, Field{
+				Name: field,
+				Type: vtype,
 			})
 		}
 
-		md.Structs = append(md.Structs, strct)
+		md.Tables = append(md.Tables, table)
 	}
 
-	return nil
+	return md, nil
 }
