@@ -49,7 +49,7 @@ func TestSqlite3(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = format(ioutil.Discard, 4, byts.Bytes())
+	err = format(ioutil.Discard, byts.Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}

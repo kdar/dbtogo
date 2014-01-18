@@ -66,7 +66,7 @@ func nounderscore(s string) string {
 }
 
 // "go fmt"'s the code
-func format(w io.Writer, tabWidth int, code []byte) error {
+func format(w io.Writer, code []byte) error {
 	fset := token.NewFileSet()
 
 	ast, err := parser.ParseFile(fset, "", code, parser.ParseComments)
@@ -74,7 +74,7 @@ func format(w io.Writer, tabWidth int, code []byte) error {
 		return err
 	}
 
-	cfg := &printer.Config{Mode: printer.UseSpaces, Tabwidth: tabWidth}
+	cfg := &printer.Config{Tabwidth: 8}
 	err = cfg.Fprint(w, fset, ast)
 	if err != nil {
 		return err
@@ -213,7 +213,7 @@ func cliAction(cmd string) func(c *cli.Context) {
 		render(buffer, md, c.GlobalString("tpl"))
 
 		if !c.GlobalBool("nofmt") {
-			err = format(file, c.GlobalInt("tabwidth"), buffer.Bytes())
+			err = format(file, buffer.Bytes())
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -262,10 +262,9 @@ EXAMPLE:
 	app.Usage = "turns database tables into go code"
 	app.Version = "1.0.0"
 	app.Flags = []cli.Flag{
-		cli.StringFlag{"tpl", "", "template to use in rendering code"},
-		cli.BoolFlag{"nofmt", "don't use go fmt to format code"},
-		cli.IntFlag{"tabwidth", 4, "tab width for go fmt output"},
-		cli.StringFlag{"o", "-", "where to output code. defaults to stdout"},
+		cli.StringFlag{Name: "tpl", Value: "", Usage: "template to use in rendering code"},
+		cli.BoolFlag{Name: "nofmt", Usage: "don't use go fmt to format code"},
+		cli.StringFlag{Name: "o", Value: "-", Usage: "where to output code. defaults to stdout"},
 	}
 	// app.Action = func(c *cli.Context) {
 	// 	println("Hello friend!")
