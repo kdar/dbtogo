@@ -1,13 +1,9 @@
 package main
 
 import (
-	"bitbucket.org/pkg/inflect"
 	"bytes"
 	"database/sql"
-	_ "github.com/bmizerany/pq"
-	"github.com/codegangsta/cli"
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/mattn/go-sqlite3"
+	"fmt"
 	"go/parser"
 	"go/printer"
 	"go/token"
@@ -20,6 +16,12 @@ import (
 	"text/template"
 	"unicode"
 	"unicode/utf8"
+
+	"bitbucket.org/pkg/inflect"
+	_ "github.com/bmizerany/pq"
+	"github.com/codegangsta/cli"
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // var (
@@ -152,7 +154,7 @@ func render(writer io.Writer, md *Metadata, file string) error {
 	return t.ExecuteTemplate(writer, tplName, md)
 }
 
-func cliAction(cmd string) func(c *cli.Context) {
+func cliDbAction(cmd string) func(c *cli.Context) {
 	return func(c *cli.Context) {
 		var err error
 
@@ -223,6 +225,10 @@ func cliAction(cmd string) func(c *cli.Context) {
 	}
 }
 
+func newTplAction(c *cli.Context) {
+	fmt.Println(default_template)
+}
+
 func main() {
 	cli.AppHelpTemplate = `NAME:
    {{.Name}} - {{.Usage}}
@@ -272,16 +278,22 @@ EXAMPLE:
 
 	app.Commands = []cli.Command{
 		{
+			Name:        "newtpl",
+			Usage:       "outputs a new template you can use",
+			Description: "",
+			Action:      newTplAction,
+		},
+		{
 			Name:        "mysql",
 			Usage:       "connects to a mysql database",
 			Description: "",
-			Action:      cliAction("mysql"),
+			Action:      cliDbAction("mysql"),
 		},
 		{
 			Name:        "sqlite3",
 			Usage:       "connects to a sqlite3 database",
 			Description: "",
-			Action:      cliAction("sqlite3"),
+			Action:      cliDbAction("sqlite3"),
 		},
 	}
 
