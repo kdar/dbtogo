@@ -62,7 +62,7 @@ func mysql(db *sql.DB) (*Metadata, error) {
 	}
 
 	for _, tableName := range tableNames {
-		rows, err := db.Query(fmt.Sprintf("show columns from %s", tableName))
+		rows, err := db.Query(fmt.Sprintf("show columns from `%s`", tableName))
 		if err != nil {
 			return nil, err
 		}
@@ -139,7 +139,7 @@ func sqlite3(db *sql.DB) (*Metadata, error) {
 	}
 
 	for _, tableName := range tableNames {
-		rows, err := db.Query(fmt.Sprintf("PRAGMA TABLE_INFO('%s')", tableName))
+		rows, err := db.Query(fmt.Sprintf("PRAGMA TABLE_INFO(`%s`)", tableName))
 		if err != nil {
 			return nil, err
 		}
