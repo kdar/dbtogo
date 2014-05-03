@@ -89,6 +89,8 @@ func mysql(db *sql.DB) (*Metadata, error) {
 				vtype = reflect.TypeOf(float64(0))
 			case "blob", "tinyblog", "mediumblob", "longblob":
 				vtype = reflect.TypeOf([]byte{})
+			case "datetime":
+				vtype = timeType
 			}
 
 			table.Fields = append(table.Fields, Field{
