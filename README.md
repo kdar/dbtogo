@@ -7,7 +7,7 @@ The generated code is configurable through modifying the template.
 
 ### Support
 
-Right now only supports mysql and sqlite3. Haven't gotten around to implementing postgresql yet.
+Right now only supports mysql, sqlite3, and mssql (MS SQL Sever). Haven't gotten around to implementing postgresql yet.
 
 ### Why?
 
@@ -19,6 +19,7 @@ I use this for our production backend. Pull requests are welcome.
 
 `dbtogo --help` will tell you what you want to know.
 
+    dbtogo mssql "server=localhost;database=db1;user id=user1;password=password1"
     dbtogo mysql mysqluser:pass@tcp(host:port)/db
     dbtogo sqlite3 ./foo.db
 
