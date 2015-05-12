@@ -20,6 +20,7 @@ import (
 	"bitbucket.org/pkg/inflect"
 	_ "github.com/bmizerany/pq"
 	"github.com/codegangsta/cli"
+	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -175,6 +176,8 @@ func cliDbAction(cmd string) func(c *cli.Context) {
 		var md *Metadata
 
 		switch cmd {
+		case "mssql":
+			md, err = mssql(db)
 		case "mysql":
 			md, err = mysql(db)
 		case "postgresql":
@@ -243,6 +246,7 @@ GLOBAL OPTIONS:
    {{range .Flags}}{{.}}
    {{end}}
 DATABASES:
+   mssql          http://github.com/denisenkom/go-mssqldb
    mysql          http://github.com/go-sql-driver/mysql
    postgresql     http://github.com/bmizerany/pq
    sqlite3        http://github.com/mattn/go-sqlite3
@@ -294,6 +298,12 @@ EXAMPLE:
 			Usage:       "connects to a sqlite3 database",
 			Description: "",
 			Action:      cliDbAction("sqlite3"),
+		},
+		{
+			Name:        "mssql",
+			Usage:       "connects to a Microsoft SQL database",
+			Description: "",
+			Action:      cliDbAction("mssql"),
 		},
 	}
 
