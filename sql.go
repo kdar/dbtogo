@@ -218,16 +218,12 @@ func mssql(db *sql.DB) (*Metadata, error) {
 			typ, _ := parseSqlite3Type(strings.ToLower(styp))
 			switch typ {
 			case "int", "integer", "tinyint", "smallint", "mediumint", "bigint", "unsigned big int", "big int", "int2", "int8":
-				// if sign == "unsigned" {
-				//   vtype = reflect.TypeOf(uint64(0))
-				// } else {
 				vtype = reflect.TypeOf(int64(0))
-				// }
-			case "real", "double", "double precision", "float", "numeric", "decimal":
+			case "real", "double", "double precision", "float", "numeric", "decimal", "money", "smallmoney":
 				vtype = reflect.TypeOf(float64(0))
 			case "bit", "boolean", "bool":
 				vtype = reflect.TypeOf(true)
-			case "date", "datetime":
+			case "date", "datetime", "datetime2", "smalldatetime", "time":
 				vtype = timeType
 			}
 
