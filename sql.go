@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 	"time"
@@ -108,8 +109,66 @@ func mysql(db *sql.DB) (*Metadata, error) {
 // connect to postgresql and return all
 // of the tables and their fields
 func postgresql(db *sql.DB) (*Metadata, error) {
-	//"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = ?"
-	return nil, nil
+	md := &Metadata{}
+
+	rows, err := db.Query(`SELECT
+    columns.table_name, columns.column_name, columns.data_type, columns.is_nullable
+FROM
+    information_schema.columns
+INNER JOIN
+    information_schema.tables
+ON
+    columns.table_name = tables.table_name
+WHERE
+    tables.table_type = 'BASE TABLE'
+AND
+    tables.table_schema NOT IN ('pg_catalog', 'information_schema')
+ORDER BY
+    columns.table_schema, columns.table_name, columns.ordinal_position;`)
+	if err != nil {
+		return nil, err
+	}
+
+	var tableName, colName, dataType, isNullable string
+	for rows.Next() {
+		err := rows.Scan(&tableName, &colName, &dataType, &isNullable)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if len(md.Tables) == 0 || md.Tables[len(md.Tables)-1].Name != tableName {
+			md.Tables = append(md.Tables, Table{
+				Name: tableName,
+			})
+		}
+
+		// default type
+		vtype := reflect.TypeOf("")
+
+		switch dataType {
+		case "bigint", "integer", "numeric", "smallint":
+			vtype = reflect.TypeOf(int64(0))
+		case "boolean":
+			vtype = reflect.TypeOf(false)
+		case "double precision":
+			vtype = reflect.TypeOf(float64(0))
+		case "real":
+			vtype = reflect.TypeOf(float32(0))
+		case "bytea":
+			vtype = reflect.TypeOf([]byte{})
+		case "character varying", "character", "text":
+			vtype = reflect.TypeOf("")
+		case "date", "time with time zone", "time without time zone", "timestamp with time zone", "timestamp without time zone":
+			vtype = timeType
+		}
+
+		md.Tables[len(md.Tables)-1].Fields = append(md.Tables[len(md.Tables)-1].Fields, Field{
+			Name: colName,
+			Type: vtype,
+		})
+	}
+
+	return md, nil
 }
 
 // parses the sqlite3 type string and returns

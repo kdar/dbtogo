@@ -7,7 +7,7 @@ The generated code is configurable through modifying the template.
 
 ### Support
 
-Right now only supports mysql, sqlite3, and mssql (MS SQL Sever). Haven't gotten around to implementing postgresql yet.
+Right now only supports mysql, sqlite3, mssql (MS SQL Sever), and postgresql.
 
 ### Why?
 
@@ -21,6 +21,7 @@ I use this for our production backend. Pull requests are welcome.
 
     dbtogo mssql "server=localhost;database=db1;user id=user1;password=password1"
     dbtogo mysql mysqluser:pass@tcp(host:port)/db
+    dbtogo postgres postgres://user:pass@localhost:5432/db?sslmode=disable
     dbtogo sqlite3 ./foo.db
 
 ### Example
@@ -28,7 +29,7 @@ I use this for our production backend. Pull requests are welcome.
 Assume we have the following tables in a sqlite3 database:
 
     CREATE TABLE Foo (
-    id integer not null primary key, 
+    id integer not null primary key,
     name text);
 
     CREATE TABLE Bar(
@@ -91,10 +92,10 @@ The example template should get you started.
 
 String functions
 
-function          | description             
+function          | description
 :-----------------|:--------------------------------------------------------
-tolower           | "Awesome" -> "awesome"       
-join              | strings.Join            
+tolower           | "Awesome" -> "awesome"
+join              | strings.Join
 captialize        | "hello" -> "Hello"  
 noundercore       | "im_cool" -> "imcool"
 underscore        | "BigBen" -> "big_ben"
@@ -107,7 +108,7 @@ typeify           | "something_like_this" -> "SomethingLikeThis"
 
 Modify inflection functions
 
-function          | description             
+function          | description
 :-----------------|:--------------------------------------------------------
 addacronym        | [AddAcronym](http://godoc.org/bitbucket.org/pkg/inflect#Ruleset.AddAcronym)
 addhuman          | [AddHuman](http://godoc.org/bitbucket.org/pkg/inflect#Ruleset.AddHuman)
@@ -120,14 +121,14 @@ adduncountable    | [AddUncountable](http://godoc.org/bitbucket.org/pkg/inflect#
 
 Math functions
 
-function          | description             
+function          | description
 :-----------------|:--------------------------------------------------------
 add               | adds two integers
 sub               | substracts two integers
 
 Field functions (these functions operate on dbtogo.Field)
 
-function          | description             
+function          | description
 :-----------------|:--------------------------------------------------------
 typenull          | converts to sql.Null* when appropriate. makes it a pointer otherwise
 typepointer       | converts to a pointer unless it is a slice type

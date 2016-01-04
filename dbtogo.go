@@ -18,10 +18,10 @@ import (
 	"unicode/utf8"
 
 	"bitbucket.org/pkg/inflect"
-	_ "github.com/bmizerany/pq"
 	"github.com/codegangsta/cli"
 	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/stdlib"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -180,7 +180,7 @@ func cliDbAction(cmd string) func(c *cli.Context) {
 			md, err = mssql(db)
 		case "mysql":
 			md, err = mysql(db)
-		case "postgresql":
+		case "pgx":
 			md, err = postgresql(db)
 		case "sqlite3":
 			md, err = sqlite3(db)
@@ -248,7 +248,7 @@ GLOBAL OPTIONS:
 DATABASES:
    mssql          http://github.com/denisenkom/go-mssqldb
    mysql          http://github.com/go-sql-driver/mysql
-   postgresql     http://github.com/bmizerany/pq
+   postgresql     http://github.com/jackc/pgx/stdlib
    sqlite3        http://github.com/mattn/go-sqlite3
 `
 	cli.CommandHelpTemplate = `NAME:
@@ -257,14 +257,14 @@ DATABASES:
 USAGE:
    dbtogo {{.Name}} [command options] [DSN]
 
-   If you want to omit the DSN on the command line, 
+   If you want to omit the DSN on the command line,
      put your DSN in the DBTOGO_DSN environment variable.
 
 OPTIONS:
    {{range .Flags}}{{.}}
    {{end}}
 EXAMPLE:
-   dbtogo {{.Name}} {{if eq .Name "mysql"}}mysqluser:pass@tcp(host:port)/db{{end}}{{if eq .Name "postgresql"}}user=pqgotest dbname=pqgotest sslmode=verify-full{{end}}{{if eq .Name "sqlite3"}}./foo.db{{end}}
+   dbtogo {{.Name}} {{if eq .Name "mysql"}}mysqluser:pass@tcp(host:port)/db{{end}}{{if eq .Name "postgresql"}}postgres://user:pass@localhost:5432/db?sslmode=disable{{end}}{{if eq .Name "sqlite3"}}./foo.db{{end}}
 `
 
 	app := cli.NewApp()
@@ -304,6 +304,12 @@ EXAMPLE:
 			Usage:       "connects to a Microsoft SQL database",
 			Description: "",
 			Action:      cliDbAction("mssql"),
+		},
+		{
+			Name:        "postgresql",
+			Usage:       "connects to a postgresql database",
+			Description: "",
+			Action:      cliDbAction("pgx"),
 		},
 	}
 
